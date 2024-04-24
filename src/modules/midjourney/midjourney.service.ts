@@ -35,7 +35,7 @@ export class MidjourneyService {
         },
       );
       const { status, task_result } = fetchData;
-      logger.info('GOAPI midjourney 查询状态结果：', task_id, status);
+      logger.info('GOAPI midjourney task status:', task_id, status);
       finished = status === 'finished';
       if (finished) {
         imageUrl = task_result.image_url;
@@ -54,7 +54,7 @@ export class MidjourneyService {
     );
     const result = await Promise.all(
       splitedFiles.map(async (file, index) => {
-        logger.info('开始上传文件：', file);
+        logger.info('Start to upload file:', file);
         const s3Helper = new S3Helpers();
         const url = await s3Helper.uploadFile(
           fs.readFileSync(file),
@@ -63,6 +63,7 @@ export class MidjourneyService {
         return url;
       }),
     );
+    logger.info('Upload files result:', result);
     return result;
   }
 

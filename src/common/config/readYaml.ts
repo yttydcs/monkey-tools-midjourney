@@ -3,7 +3,10 @@ import _ from 'lodash';
 import path from 'path';
 import * as yaml from 'yaml';
 
-const configFiles = [path.resolve('./config.yaml'), '/path/to/config.yaml']
+const configFiles = [
+  path.resolve('./config.yaml'),
+  '/etc/monkey-tools-midjourney.yaml',
+]
   .filter(Boolean)
   .filter(fs.existsSync)
   .map((file) => fs.readFileSync(file, 'utf-8'))

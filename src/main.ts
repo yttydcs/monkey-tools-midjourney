@@ -5,6 +5,7 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import bodyParser from 'body-parser';
 import { AppModule } from './app.module';
 import { ExceptionsFilter } from './common/filters/exception.filter';
+import { logger } from './common/logger';
 
 export const setupSwagger = (app: INestApplication) => {
   const builder = new DocumentBuilder()
@@ -48,5 +49,7 @@ async function bootstrap() {
   setupSwagger(app);
 
   await app.listen(config.server.port);
+
+  logger.info(`Server is running on port ${config.server.port}`);
 }
 bootstrap();
