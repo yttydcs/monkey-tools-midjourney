@@ -1,2 +1,13 @@
 server:
-  port: 3000
+  port: 3005
+
+goapi:
+  apikey: xxxxxx
+
+s3:
+  accessKeyId: xxxxxxxx
+  secretAccessKey: xxxxxxxx
+  endpoint: xxxxxxxx
+  region: xxxxxxxx
+  bucket: xxxxxxxx
+  publicAccessUrl: xxxxxxxx

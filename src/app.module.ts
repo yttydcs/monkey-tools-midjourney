@@ -4,10 +4,10 @@ import { AppService } from './app.service';
 import { CacheModule } from './common/cache/cache.module';
 import { LockModule } from './common/lock/lock.module';
 import { CommonMiddleware } from './common/middlewares/common.middleware';
-import { ExampleModule } from './modules/example/example.module';
+import { MidjourneyModule } from './modules/midjourney/midjourney.module';
 
 @Module({
-  imports: [CacheModule, LockModule, ExampleModule],
+  imports: [CacheModule, LockModule, MidjourneyModule],
   controllers: [AppController],
   providers: [AppService],
 })

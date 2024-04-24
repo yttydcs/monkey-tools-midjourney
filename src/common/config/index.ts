@@ -12,9 +12,25 @@ export interface RedisConfig {
   prefix: string;
 }
 
+export interface GoApiConfig {
+  apikey: string;
+}
+
+export interface S3Config {
+  accessKeyId: string;
+  secretAccessKey: string;
+  endpoint: string;
+  region: string;
+  modelBucketName: string;
+  bucket: string;
+  publicAccessUrl: string;
+}
+
 export interface Config {
   server: ServerConfig;
   redis: RedisConfig;
+  goapi: GoApiConfig;
+  s3: S3Config;
 }
 
 const port = readConfig('server.port', 3000);
@@ -35,6 +51,10 @@ export const config: Config = {
     url: readConfig('redis.url'),
     prefix: readConfig('redis.prefix', 'monkeys:'),
   },
+  goapi: {
+    apikey: readConfig('goapi.apikey', ''),
+  },
+  s3: readConfig('s3', {}),
 };
 
 const validateConfig = () => {
@@ -44,6 +64,10 @@ const validateConfig = () => {
         'Invalid Config: auth.bearerToken must not empty when auth.type is service_http',
       );
     }
+  }
+
+  if (!config.goapi.apikey) {
+    throw new Error('Invalid Config: goapi.apikey must not empty');
   }
 };
 

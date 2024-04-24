@@ -24,7 +24,7 @@ export class AppController {
     return {
       schema_version: SchemaVersion.v1,
       display_name: 'ComfyUI',
-      namespace: 'monkeys_tool_template_for_nestjs',
+      namespace: 'midjourney',
       auth: config.server.auth,
       api: {
         type: ApiType.openapi,
