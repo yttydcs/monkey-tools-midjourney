@@ -1,4 +1,5 @@
 import { AuthConfig, AuthType } from '../typings/manifest';
+import { getHostFromUrl } from '../utils';
 import { readConfig } from './readYaml';
 
 export interface ServerConfig {
@@ -26,11 +27,18 @@ export interface S3Config {
   publicAccessUrl: string;
 }
 
+export interface ProxyConfig {
+  enabled: boolean;
+  url?: string;
+  exclude?: string[];
+}
+
 export interface Config {
   server: ServerConfig;
   redis: RedisConfig;
   goapi: GoApiConfig;
   s3: S3Config;
+  proxy: ProxyConfig;
 }
 
 const port = readConfig('server.port', 3000);
@@ -55,6 +63,11 @@ export const config: Config = {
     apikey: readConfig('goapi.apikey', ''),
   },
   s3: readConfig('s3', {}),
+  proxy: {
+    enabled: readConfig('proxy.enabled', false),
+    url: readConfig('proxy.url'),
+    exclude: readConfig('proxy.exclude', []),
+  },
 };
 
 const validateConfig = () => {
@@ -69,6 +82,30 @@ const validateConfig = () => {
   if (!config.goapi.apikey) {
     throw new Error('Invalid Config: goapi.apikey must not empty');
   }
+
+  if (config.proxy.enabled) {
+    if (!config.proxy.url) {
+      throw new Error('Proxy enabled but no url provided');
+    }
+    if (config.proxy.exclude && !Array.isArray(config.proxy.exclude)) {
+      throw new Error('Proxy exclude must be an array');
+    }
+  }
 };
 
 validateConfig();
+
+if (config.proxy.enabled) {
+  const { url, exclude } = config.proxy;
+  // Exclude localhost from proxy
+  exclude.push('localhost');
+  exclude.push('127.0.0.1');
+  // Exclude s3 from proxy
+  exclude.push(getHostFromUrl(config.s3.endpoint));
+  exclude.push(getHostFromUrl(config.s3.publicAccessUrl));
+  process.env.HTTP_PROXY = url;
+  process.env.HTTPS_PROXY = url;
+  process.env.http_proxy = url;
+  process.env.https_proxy = url;
+  process.env.NO_PROXY = exclude.join(',');
+}

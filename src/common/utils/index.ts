@@ -38,3 +38,8 @@ export function getAndEnsureTempDataFolder() {
   }
   return folder;
 }
+
+export function getHostFromUrl(url: string): string {
+  const parsedUrl = new URL(url);
+  return parsedUrl.host;
+}
