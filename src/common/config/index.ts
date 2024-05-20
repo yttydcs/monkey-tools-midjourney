@@ -25,6 +25,7 @@ export interface S3Config {
   modelBucketName: string;
   bucket: string;
   publicAccessUrl: string;
+  forcePathStyle: boolean;
 }
 
 export interface ProxyConfig {
