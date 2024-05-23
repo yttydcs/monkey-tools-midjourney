@@ -27,19 +27,32 @@ export class MidjourneyService {
     let finished = false;
     // 四张图汇总在一起的
     let imageUrl = '';
+    const maxRetry = 10;
+    let retried = 0;
     while (!finished) {
-      const { data: fetchData } = await axios.post(
-        'https://api.midjourneyapi.xyz/mj/v2/fetch',
-        {
-          task_id: task_id,
-        },
-      );
-      const { status, task_result } = fetchData;
-      logger.info('GOAPI midjourney task status:', task_id, status);
-      finished = status === 'finished';
-      if (finished) {
-        imageUrl = task_result.image_url;
-      } else {
+      try {
+        const { data: fetchData } = await axios.post(
+          'https://api.midjourneyapi.xyz/mj/v2/fetch',
+          {
+            task_id: task_id,
+          },
+        );
+        const { status, task_result } = fetchData;
+        logger.info('GOAPI midjourney task status:', task_id, status);
+        finished = status === 'finished';
+        if (finished) {
+          imageUrl = task_result.image_url;
+        } else {
+          await sleep(500);
+        }
+      } catch (error) {
+        retried += 1;
+        if (retried >= maxRetry) {
+          throw new Error('Polling GOAPI midjourney task failed: ' + error);
+        }
+        logger.error(
+          `Polling GOAPI midjourney task failed: ${error.message}, retrying...`,
+        );
         await sleep(500);
       }
     }
