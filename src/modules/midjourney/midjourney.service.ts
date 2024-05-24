@@ -31,11 +31,15 @@ export class MidjourneyService {
     logger[level]?.(message);
     this.mq.publish(
       workflowTaskId,
-      JSON.stringify({
-        level,
-        message,
-        timestamp: Math.floor(Date.now() / 1000),
-      }),
+      JSON.stringify(
+        {
+          level,
+          message,
+          timestamp: Math.floor(Date.now() / 1000),
+        },
+        null,
+        0,
+      ),
     );
   }
 

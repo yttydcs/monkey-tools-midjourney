@@ -14,7 +14,7 @@ export class LogController {
 
     this.mq.subscribe(taskId, (channel, message) => {
       res.write(`data: ${message}\n\n`);
-      if (message.startsWith('[DONE]')) {
+      if (message.includes('[DONE]')) {
         res.end();
       }
     });
