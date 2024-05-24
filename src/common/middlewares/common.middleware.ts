@@ -13,6 +13,7 @@ export class CommonMiddleware implements NestMiddleware {
     req.workflowInstanceId = req.headers[
       'x-monkeys-workflow-instanceid'
     ] as string;
+    req.taskId = req.headers['x-monkeys-workflow-taskid'] as string;
     next();
   }
 }

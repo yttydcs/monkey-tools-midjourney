@@ -5,4 +5,5 @@ export interface IRequest extends express.Request {
   userId: string;
   teamId: string;
   workflowInstanceId: string;
+  taskId: string;
 }

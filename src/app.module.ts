@@ -1,13 +1,13 @@
 import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CacheModule } from './common/cache/cache.module';
-import { LockModule } from './common/lock/lock.module';
+import { CommonModule } from './common/common.module';
 import { CommonMiddleware } from './common/middlewares/common.middleware';
+import { LogModule } from './modules/log/log.module';
 import { MidjourneyModule } from './modules/midjourney/midjourney.module';
 
 @Module({
-  imports: [CacheModule, LockModule, MidjourneyModule],
+  imports: [CommonModule, MidjourneyModule, LogModule],
   controllers: [AppController],
   providers: [AppService],
 })

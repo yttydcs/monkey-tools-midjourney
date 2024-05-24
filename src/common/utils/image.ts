@@ -2,6 +2,7 @@ import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import { logger } from '../logger';
 
 export async function downloadImageAsJson(url: string) {
   const { data } = await axios.get(url, {
@@ -91,6 +92,6 @@ export async function splitImage(imagePath: string, folder: string) {
       files.push(fileName);
     }
   }
-  console.log('图片切分完成');
+  logger.info('图片切分完成');
   return files;
 }

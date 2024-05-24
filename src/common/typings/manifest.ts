@@ -70,4 +70,5 @@ export interface ManifestJson {
   triggers?: TriggerDefinition[];
   credentials?: CredentialDefinition[];
   credentialEncryptKey?: string;
+  logEndpoint?: string;
 }

@@ -7,7 +7,8 @@ import {
   MonkeyToolOutput,
 } from '@/common/decorators/monkey-block-api-extensions.decorator';
 import { AuthGuard } from '@/common/guards/auth.guard';
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { IRequest } from '@/common/typings/request';
+import { Body, Controller, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import {
   GoApiMidjourneyBlendInput,
@@ -87,8 +88,12 @@ export class MidjourneyController {
   @MonkeyToolExtra({
     estimateTime: 180,
   })
-  public async generateImageByGoApi(@Body() body: GoApiMidjourneyInput) {
-    const urls = await this.service.generateImageByGoApi(body);
+  public async generateImageByGoApi(
+    @Req() req: IRequest,
+    @Body() body: GoApiMidjourneyInput,
+  ) {
+    const { taskId } = req;
+    const urls = await this.service.generateImageByGoApi(taskId, body);
     return {
       result: urls,
     };
@@ -177,8 +182,12 @@ export class MidjourneyController {
   @MonkeyToolExtra({
     estimateTime: 180,
   })
-  public async imageBlendByGoApi(@Body() body: GoApiMidjourneyBlendInput) {
-    const urls = await this.service.imageBlendByGoApi(body);
+  public async imageBlendByGoApi(
+    @Req() req: IRequest,
+    @Body() body: GoApiMidjourneyBlendInput,
+  ) {
+    const { taskId } = req;
+    const urls = await this.service.imageBlendByGoApi(taskId, body);
     return {
       result: urls,
     };

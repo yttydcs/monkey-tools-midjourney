@@ -31,6 +31,7 @@ export class AppController {
         url: `/openapi-json`,
       },
       contact_email: 'dev@inf-monkeys.com',
+      logEndpoint: '/logs/{taskId}',
     };
   }
 }

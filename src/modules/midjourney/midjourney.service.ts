@@ -1,9 +1,11 @@
+import { MQ_TOKEN } from '@/common/common.module';
 import { config } from '@/common/config';
-import { logger } from '@/common/logger';
+import { LogLevel, logger } from '@/common/logger';
+import { Mq } from '@/common/mq';
 import { S3Helpers } from '@/common/s3';
 import { getAndEnsureTempDataFolder, sleep } from '@/common/utils';
 import { downloadFileTo, splitImage } from '@/common/utils/image';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
@@ -23,7 +25,21 @@ export interface GoApiMidjourneyBlendInput {
 
 @Injectable()
 export class MidjourneyService {
-  private async pollResult(task_id: string) {
+  constructor(@Inject(MQ_TOKEN) private readonly mq: Mq) {}
+
+  private pubMessage(workflowTaskId: string, level: LogLevel, message: string) {
+    logger[level]?.(message);
+    this.mq.publish(
+      workflowTaskId,
+      JSON.stringify({
+        level,
+        message,
+        timestamp: Math.floor(Date.now() / 1000),
+      }),
+    );
+  }
+
+  private async pollResult(workflowTaskId: string, task_id: string) {
     let finished = false;
     // 四张图汇总在一起的
     let imageUrl = '';
@@ -38,7 +54,11 @@ export class MidjourneyService {
           },
         );
         const { status, task_result } = fetchData;
-        logger.info('GOAPI midjourney task status:', task_id, status);
+        this.pubMessage(
+          workflowTaskId,
+          'info',
+          `Midjourney task status: ${status}`,
+        );
         finished = status === 'finished';
         if (finished) {
           imageUrl = task_result.image_url;
@@ -48,9 +68,16 @@ export class MidjourneyService {
       } catch (error) {
         retried += 1;
         if (retried >= maxRetry) {
+          this.pubMessage(
+            workflowTaskId,
+            'error',
+            `Polling GOAPI midjourney task failed: ${error.message}`,
+          );
           throw new Error('Polling GOAPI midjourney task failed: ' + error);
         }
-        logger.error(
+        this.pubMessage(
+          workflowTaskId,
+          'warn',
           `Polling GOAPI midjourney task failed: ${error.message}, retrying...`,
         );
         await sleep(500);
@@ -60,14 +87,20 @@ export class MidjourneyService {
     // 把图切开
     const tmpFolder = getAndEnsureTempDataFolder();
     const composedImageFile = path.join(tmpFolder, `${task_id}.png`);
+    this.pubMessage(workflowTaskId, 'info', `Downloading image ${imageUrl}`);
     await downloadFileTo(imageUrl, composedImageFile);
+    this.pubMessage(workflowTaskId, 'info', `Splitting image into 4 pieces`);
     const splitedFiles = await splitImage(
       composedImageFile,
       path.join(tmpFolder, task_id),
     );
     const result = await Promise.all(
       splitedFiles.map(async (file, index) => {
-        logger.info('Start to upload file:', file);
+        this.pubMessage(
+          workflowTaskId,
+          'info',
+          `Uploading file ${index + 1}/${splitedFiles.length}: ${file}`,
+        );
         const s3Helper = new S3Helpers();
         const url = await s3Helper.uploadFile(
           fs.readFileSync(file),
@@ -76,11 +109,16 @@ export class MidjourneyService {
         return url;
       }),
     );
-    logger.info('Upload files result:', result);
+    this.pubMessage(
+      workflowTaskId,
+      'info',
+      'Upload files result:' + JSON.stringify(result),
+    );
     return result;
   }
 
   public async generateImageByGoApi(
+    workflowTaskId: string,
     inputData: GoApiMidjourneyInput,
   ): Promise<string[]> {
     const {
@@ -110,7 +148,12 @@ export class MidjourneyService {
         },
       );
       const { task_id } = imagineData;
-      return await this.pollResult(task_id);
+      this.pubMessage(
+        workflowTaskId,
+        'info',
+        `Created midjourney imagine task with prompt ${prompt}, task_id=${task_id}`,
+      );
+      return await this.pollResult(workflowTaskId, task_id);
     } catch (error: any) {
       logger.error(error);
       const errMsg = error?.response?.data?.message || error?.message;
@@ -119,6 +162,7 @@ export class MidjourneyService {
   }
 
   public async imageBlendByGoApi(
+    workflowTaskId: string,
     inputData: GoApiMidjourneyBlendInput,
   ): Promise<string[]> {
     const { images, process_mode = 'relax', dimension } = inputData;
@@ -140,11 +184,18 @@ export class MidjourneyService {
         },
       );
       const { task_id } = blendData;
-      return await this.pollResult(task_id);
+      this.pubMessage(
+        workflowTaskId,
+        'info',
+        `Created midjourney blend task with prompt ${prompt}, task_id=${task_id}`,
+      );
+      return await this.pollResult(workflowTaskId, task_id);
     } catch (error: any) {
       logger.error(error);
       const errMsg = error?.response?.data?.message || error?.message;
       throw new Error('生成图片失败：' + errMsg);
+    } finally {
+      this.pubMessage(workflowTaskId, 'info', '[DONE]');
     }
   }
 }
