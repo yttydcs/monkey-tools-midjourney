@@ -47,9 +47,11 @@ export class MidjourneyService {
     let finished = false;
     // 四张图汇总在一起的
     let imageUrl = '';
-    const maxRetry = 10;
-    let retried = 0;
-    while (!finished) {
+    // Set timeout to 10 minutes
+    const timeoutMs = 60 * 10 * 1000;
+    const start = +new Date();
+    let timeouted = false;
+    while (!finished && !timeouted) {
       try {
         const { data: fetchData } = await axios.post(
           'https://api.midjourneyapi.xyz/mj/v2/fetch',
@@ -70,22 +72,28 @@ export class MidjourneyService {
           await sleep(500);
         }
       } catch (error) {
-        retried += 1;
-        if (retried >= maxRetry) {
-          this.pubMessage(
-            workflowTaskId,
-            'error',
-            `Polling GOAPI midjourney task failed: ${error.message}`,
-          );
-          throw new Error('Polling GOAPI midjourney task failed: ' + error);
-        }
         this.pubMessage(
           workflowTaskId,
           'warn',
           `Polling GOAPI midjourney task failed: ${error.message}, retrying...`,
         );
         await sleep(500);
+      } finally {
+        if (!finished) {
+          timeouted = +new Date() - start > timeoutMs;
+        }
       }
+    }
+
+    if (timeouted) {
+      this.pubMessage(
+        workflowTaskId,
+        'error',
+        `Midjourney task timeouted after ${timeoutMs / 1000} seconds`,
+      );
+      throw new Error(
+        `Midjourney task timeouted after ${timeoutMs / 1000} seconds`,
+      );
     }
 
     // 把图切开

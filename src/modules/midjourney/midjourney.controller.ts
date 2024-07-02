@@ -1,5 +1,7 @@
 import {
   MonkeyToolCategories,
+  MonkeyToolDescription,
+  MonkeyToolDisplayName,
   MonkeyToolExtra,
   MonkeyToolIcon,
   MonkeyToolInput,
@@ -30,18 +32,28 @@ export class MidjourneyController {
   @MonkeyToolName('goapi_midjourney')
   @MonkeyToolCategories(['gen-image'])
   @MonkeyToolIcon('emoji:📷:#98ae36')
+  @MonkeyToolDisplayName({
+    'zh-CN': '文本生成图像（MJ）',
+    'en-US': 'Text to Image (MJ)',
+  })
   @MonkeyToolInput([
     {
       type: 'string',
       name: 'prompt',
-      displayName: '关键词（提示词）',
+      displayName: {
+        'zh-CN': '关键词（提示词）',
+        'en-US': 'Prompt',
+      },
       default: '',
       required: true,
     },
     {
       name: 'process_mode',
       type: 'options',
-      displayName: '处理模式',
+      displayName: {
+        'zh-CN': '处理模式',
+        'en-US': 'Process mode',
+      },
       default: 'relax',
       options: [
         {
@@ -71,14 +83,20 @@ export class MidjourneyController {
     {
       name: 'skip_prompt_check',
       type: 'boolean',
-      displayName: '是否调过 Prompt 校验',
+      displayName: {
+        'zh-CN': '是否跳过 Prompt 校验',
+        'en-US': 'Skip prompt check',
+      },
       default: false,
     },
   ])
   @MonkeyToolOutput([
     {
       name: 'result',
-      displayName: '图像 URL 列表',
+      displayName: {
+        'zh-CN': '图像 URL 列表',
+        'en-US': 'Image URL list',
+      },
       type: 'file',
       typeOptions: {
         multipleValues: true,
@@ -105,18 +123,27 @@ export class MidjourneyController {
     description: '使用 MJ 将多张图片合并为一张图片。',
   })
   @MonkeyToolName('goapi_midjourney_blend')
+  @MonkeyToolDisplayName({
+    'zh-CN': '融图（MJ）',
+    'en-US': 'Blend Images (MJ)',
+  })
+  @MonkeyToolDescription({
+    'zh-CN': '使用 MJ 将多张图片合并为一张图片。',
+    'en-US': 'Blend multiple images into one image using MJ.',
+  })
   @MonkeyToolCategories(['gen-image'])
   @MonkeyToolIcon('emoji:📷:#98ae36')
   @MonkeyToolInput([
     {
       name: 'images',
       type: 'file',
-      displayName: '图片列表',
+      displayName: {
+        'zh-CN': '图片列表',
+        'en-US': 'Image List',
+      },
       typeOptions: {
         multipleValues: true,
         accept: '.jpg,.jpeg,.png',
-        // 文件数量限制
-        // multipleValues 为 false 时，下面两个的值不需要填，因为只能为 1
         minValue: 2,
         maxValue: 5,
         maxSize: 1024 * 1024 * 10,
@@ -125,7 +152,10 @@ export class MidjourneyController {
     {
       name: 'process_mode',
       type: 'options',
-      displayName: '处理模式',
+      displayName: {
+        'zh-CN': '处理模式',
+        'en-US': 'Process mode',
+      },
       default: 'relax',
       options: [
         {
@@ -170,7 +200,10 @@ export class MidjourneyController {
   @MonkeyToolOutput([
     {
       name: 'result',
-      displayName: '图像 URL 列表',
+      displayName: {
+        'zh-CN': '图像 URL 列表',
+        'en-US': 'Image URL list',
+      },
       type: 'file',
       typeOptions: {
         multipleValues: true,
