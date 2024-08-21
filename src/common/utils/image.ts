@@ -50,25 +50,45 @@ export async function downloadFileAsBuffer(url: string) {
   }
 }
 
-export async function downloadFileTo(url: string, path: string) {
-  try {
-    const writer = fs.createWriteStream(path);
+export async function downloadFileTo(
+  url: string,
+  path: string,
+  timeout = 180000,
+) {
+  const writer = fs.createWriteStream(path);
 
+  try {
     const response = await axios({
       url,
       method: 'GET',
       responseType: 'stream',
+      timeout,
     });
 
     response.data.pipe(writer);
 
-    return new Promise((resolve, reject) => {
-      writer.on('finish', resolve);
-      writer.on('error', reject);
+    return await new Promise<void>((resolve, reject) => {
+      const timer = setTimeout(() => {
+        writer.close();
+        reject(new Error('Download timeout'));
+      }, timeout);
+
+      writer.on('finish', () => {
+        clearTimeout(timer);
+        resolve();
+      });
+      writer.on('error', (err) => {
+        clearTimeout(timer);
+        reject(err);
+      });
     });
   } catch (error) {
-    console.error(`Error downloading file [${url}]:`, error);
+    console.error(`Error downloading file [${url}]: `, error);
     throw error;
+  } finally {
+    if (writer && !writer.closed) {
+      writer.close();
+    }
   }
 }
 

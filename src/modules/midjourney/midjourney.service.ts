@@ -1,6 +1,6 @@
 import { MQ_TOKEN } from '@/common/common.module';
 import { config } from '@/common/config';
-import { LogLevel, logger } from '@/common/logger';
+import { logger, LogLevel } from '@/common/logger';
 import { Mq } from '@/common/mq';
 import { S3Helpers } from '@/common/s3';
 import { getAndEnsureTempDataFolder, sleep } from '@/common/utils';
@@ -108,23 +108,22 @@ export class MidjourneyService {
       this.pubMessage(workflowTaskId, 'info', `Downloading image ${imageUrl}`);
       await downloadFileTo(imageUrl, composedImageFile);
       this.pubMessage(workflowTaskId, 'info', `Splitting image into 4 pieces`);
-      const splitedFiles = await splitImage(
+      const splitFiles = await splitImage(
         composedImageFile,
         path.join(tmpFolder, task_id),
       );
       const result = await Promise.all(
-        splitedFiles.map(async (file, index) => {
+        splitFiles.map(async (file, index) => {
           this.pubMessage(
             workflowTaskId,
             'info',
-            `Uploading file ${index + 1}/${splitedFiles.length}: ${file}`,
+            `Uploading file ${index + 1}/${splitFiles.length}: ${file}`,
           );
           const s3Helper = new S3Helpers();
-          const url = await s3Helper.uploadFile(
+          return await s3Helper.uploadFile(
             fs.readFileSync(file),
             `workflow/artifact/mj/${task_id}/${index}.jpg`,
           );
-          return url;
         }),
       );
       this.pubMessage(
@@ -135,11 +134,7 @@ export class MidjourneyService {
       return result;
     } catch (e) {
       console.error(e);
-      this.pubMessage(
-        workflowTaskId,
-        'info',
-        'Processing failed:' + e.message,
-      );
+      this.pubMessage(workflowTaskId, 'info', 'Processing failed:' + e.message);
     }
 
     return [imageUrl];
