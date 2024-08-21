@@ -58,6 +58,11 @@ export class MidjourneyService {
           {
             task_id: task_id,
           },
+          {
+            headers: {
+              'Accept-Encoding': 'gzip, deflate',
+            },
+          },
         );
         const { status, task_result } = fetchData;
         this.pubMessage(
@@ -156,6 +161,7 @@ export class MidjourneyService {
         {
           headers: {
             'X-API-KEY': config.goapi.apikey,
+            'Accept-Encoding': 'gzip, deflate',
           },
         },
       );
@@ -192,6 +198,7 @@ export class MidjourneyService {
         {
           headers: {
             'X-API-KEY': config.goapi.apikey,
+            'Accept-Encoding': 'gzip, deflate',
           },
         },
       );

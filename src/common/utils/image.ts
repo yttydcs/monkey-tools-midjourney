@@ -7,6 +7,9 @@ import { logger } from '../logger';
 export async function downloadImageAsJson(url: string) {
   const { data } = await axios.get(url, {
     responseType: 'json',
+    headers: {
+      'Accept-Encoding': 'gzip, deflate',
+    },
   });
   return data;
 }
@@ -15,6 +18,9 @@ export async function downloadImageAsBase64(url: string) {
   try {
     const response = await axios.get(url, {
       responseType: 'arraybuffer',
+      headers: {
+        'Accept-Encoding': 'gzip, deflate',
+      },
     });
 
     const imageBuffer = Buffer.from(response.data, 'binary');
@@ -31,6 +37,9 @@ export async function downloadFileAsBuffer(url: string) {
   try {
     const response = await axios.get(url, {
       responseType: 'arraybuffer',
+      headers: {
+        'Accept-Encoding': 'gzip, deflate',
+      },
     });
 
     const imageBuffer = Buffer.from(response.data, 'binary');
@@ -45,6 +54,9 @@ export async function downloadFileTo(url: string, path: string) {
   try {
     const response = await axios.get(url, {
       responseType: 'arraybuffer',
+      headers: {
+        'Accept-Encoding': 'gzip, deflate',
+      },
     });
     const imageBuffer = Buffer.from(response.data, 'binary');
     fs.writeFileSync(path, imageBuffer);
