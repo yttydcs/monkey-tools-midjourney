@@ -102,36 +102,47 @@ export class MidjourneyService {
     }
 
     // 把图切开
-    const tmpFolder = getAndEnsureTempDataFolder();
-    const composedImageFile = path.join(tmpFolder, `${task_id}.png`);
-    this.pubMessage(workflowTaskId, 'info', `Downloading image ${imageUrl}`);
-    await downloadFileTo(imageUrl, composedImageFile);
-    this.pubMessage(workflowTaskId, 'info', `Splitting image into 4 pieces`);
-    const splitedFiles = await splitImage(
-      composedImageFile,
-      path.join(tmpFolder, task_id),
-    );
-    const result = await Promise.all(
-      splitedFiles.map(async (file, index) => {
-        this.pubMessage(
-          workflowTaskId,
-          'info',
-          `Uploading file ${index + 1}/${splitedFiles.length}: ${file}`,
-        );
-        const s3Helper = new S3Helpers();
-        const url = await s3Helper.uploadFile(
-          fs.readFileSync(file),
-          `workflow/artifact/mj/${task_id}/${index}.jpg`,
-        );
-        return url;
-      }),
-    );
-    this.pubMessage(
-      workflowTaskId,
-      'info',
-      'Upload files result:' + JSON.stringify(result),
-    );
-    return result;
+    try {
+      const tmpFolder = getAndEnsureTempDataFolder();
+      const composedImageFile = path.join(tmpFolder, `${task_id}.png`);
+      this.pubMessage(workflowTaskId, 'info', `Downloading image ${imageUrl}`);
+      await downloadFileTo(imageUrl, composedImageFile);
+      this.pubMessage(workflowTaskId, 'info', `Splitting image into 4 pieces`);
+      const splitedFiles = await splitImage(
+        composedImageFile,
+        path.join(tmpFolder, task_id),
+      );
+      const result = await Promise.all(
+        splitedFiles.map(async (file, index) => {
+          this.pubMessage(
+            workflowTaskId,
+            'info',
+            `Uploading file ${index + 1}/${splitedFiles.length}: ${file}`,
+          );
+          const s3Helper = new S3Helpers();
+          const url = await s3Helper.uploadFile(
+            fs.readFileSync(file),
+            `workflow/artifact/mj/${task_id}/${index}.jpg`,
+          );
+          return url;
+        }),
+      );
+      this.pubMessage(
+        workflowTaskId,
+        'info',
+        'Upload files result:' + JSON.stringify(result),
+      );
+      return result;
+    } catch (e) {
+      console.error(e);
+      this.pubMessage(
+        workflowTaskId,
+        'info',
+        'Processing failed:' + e.message,
+      );
+    }
+
+    return [imageUrl];
   }
 
   public async generateImageByGoApi(

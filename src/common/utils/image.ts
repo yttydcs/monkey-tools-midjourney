@@ -52,16 +52,22 @@ export async function downloadFileAsBuffer(url: string) {
 
 export async function downloadFileTo(url: string, path: string) {
   try {
-    const response = await axios.get(url, {
-      responseType: 'arraybuffer',
-      headers: {
-        'Accept-Encoding': 'gzip, deflate',
-      },
+    const writer = fs.createWriteStream(path);
+
+    const response = await axios({
+      url,
+      method: 'GET',
+      responseType: 'stream',
     });
-    const imageBuffer = Buffer.from(response.data, 'binary');
-    fs.writeFileSync(path, imageBuffer);
+
+    response.data.pipe(writer);
+
+    return new Promise((resolve, reject) => {
+      writer.on('finish', resolve);
+      writer.on('error', reject);
+    });
   } catch (error) {
-    console.error('Error save image:', error);
+    console.error(`Error downloading file [${url}]:`, error);
     throw error;
   }
 }
