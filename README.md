@@ -64,7 +64,7 @@ s3:
 1. 克隆 GitHub 仓库
 
    ```sh
-   git clone https://github.com/inf-monkeys/monkey-tools-sanbox.git
+   git clone https://github.com/inf-monkeys/monkey-tools-midjourney.git
    ```
 
 2. 安装 Node modules

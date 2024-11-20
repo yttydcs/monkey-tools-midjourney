@@ -80,9 +80,9 @@ const validateConfig = () => {
     }
   }
 
-  if (!config.goapi.apikey) {
-    throw new Error('Invalid Config: goapi.apikey must not empty');
-  }
+  // if (!config.goapi.apikey) {
+  //   throw new Error('Invalid Config: goapi.apikey must not empty');
+  // }
 
   if (config.proxy.enabled) {
     if (!config.proxy.url) {

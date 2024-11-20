@@ -1,5 +1,7 @@
+import { config } from '@/common/config';
 import {
   MonkeyToolCategories,
+  MonkeyToolCredentials,
   MonkeyToolDescription,
   MonkeyToolDisplayName,
   MonkeyToolExtra,
@@ -106,11 +108,18 @@ export class MidjourneyController {
   @MonkeyToolExtra({
     estimateTime: 180,
   })
+  @MonkeyToolCredentials([
+    {
+      name: 'goapi',
+      required: config.goapi.apikey ? false : true,
+    },
+  ])
   public async generateImageByGoApi(
     @Req() req: IRequest,
     @Body() body: GoApiMidjourneyInput,
   ) {
     const { taskId } = req;
+    console.log(body);
     const urls = await this.service.generateImageByGoApi(taskId, body);
     return {
       result: urls,
@@ -195,6 +204,12 @@ export class MidjourneyController {
           value: 'landscape',
         },
       ],
+    },
+  ])
+  @MonkeyToolCredentials([
+    {
+      name: 'goapi',
+      required: config.goapi.apikey ? false : true,
     },
   ])
   @MonkeyToolOutput([

@@ -15,12 +15,20 @@ export interface GoApiMidjourneyInput {
   process_mode?: string;
   aspect_ratio?: string;
   skip_prompt_check?: boolean;
+  credential?: {
+    type: string;
+    encryptedData: string;
+  };
 }
 
 export interface GoApiMidjourneyBlendInput {
   images: string[];
   process_mode: string;
   dimension?: string;
+  credential?: {
+    type: string;
+    encryptedData: string;
+  };
 }
 
 @Injectable()
@@ -149,9 +157,18 @@ export class MidjourneyService {
       process_mode = 'relax',
       aspect_ratio,
       skip_prompt_check = false,
+      credential,
     } = inputData;
-    if (!config.goapi.apikey) {
-      throw new Error('没有配置 GOAPI_KEY，请联系管理员。');
+
+    let apiKey: string;
+    if (credential) {
+      const credentialData = JSON.parse(credential.encryptedData);
+      apiKey = credentialData.api_key;
+    } else {
+      if (!config.goapi.apikey) {
+        throw new Error('没有配置 GOAPI_KEY，请联系管理员。');
+      }
+      apiKey = config.goapi.apikey;
     }
 
     // 第一步：imagine
@@ -166,7 +183,7 @@ export class MidjourneyService {
         },
         {
           headers: {
-            'X-API-KEY': config.goapi.apikey,
+            'X-API-KEY': apiKey,
             'Accept-Encoding': 'gzip, deflate',
           },
         },
@@ -189,10 +206,18 @@ export class MidjourneyService {
     workflowTaskId: string,
     inputData: GoApiMidjourneyBlendInput,
   ): Promise<string[]> {
-    const { images, process_mode = 'relax', dimension } = inputData;
-    if (!config.goapi.apikey) {
-      throw new Error('没有配置 GOAPI_KEY，请联系管理员。');
+    const { images, process_mode = 'relax', dimension, credential } = inputData;
+    let apiKey: string;
+    if (credential) {
+      const credentialData = JSON.parse(credential.encryptedData);
+      apiKey = credentialData.api_key;
+    } else {
+      if (!config.goapi.apikey) {
+        throw new Error('没有配置 GOAPI_KEY，请联系管理员。');
+      }
+      apiKey = config.goapi.apikey;
     }
+
     try {
       const { data: blendData } = await axios.post(
         `https://api.midjourneyapi.xyz/mj/v2/blend`,
@@ -203,7 +228,7 @@ export class MidjourneyService {
         },
         {
           headers: {
-            'X-API-KEY': config.goapi.apikey,
+            'X-API-KEY': apiKey,
             'Accept-Encoding': 'gzip, deflate',
           },
         },
