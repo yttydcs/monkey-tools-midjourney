@@ -38,6 +38,7 @@ server:
   port: 3005
 
 goapi:
+  baseUrl: https://api.goapi.ai
   apikey: xxxxxx
 
 s3:
@@ -54,6 +55,7 @@ s3:
 - `server`:
   - `port`: 运行端口，请确保不要和本地的服务冲突。
 - `goapi`:
+  - `baseUrl`: GoAPI BaseURL 可选，在使用镜像地址时，需要配置此项。
   - `apikey`: 请前往 [https://www.goapi.ai/](https://www.goapi.ai/) 获取。
 - `s3`: 由于需要将生成的图片上传到 OSS 才能被工作流使用，所以需要配置 S3 相关配置。
 

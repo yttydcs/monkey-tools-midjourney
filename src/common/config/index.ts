@@ -14,6 +14,7 @@ export interface RedisConfig {
 }
 
 export interface GoApiConfig {
+  baseUrl?: string;
   apikey: string;
 }
 
@@ -62,6 +63,7 @@ export const config: Config = {
   },
   goapi: {
     apikey: readConfig('goapi.apikey', ''),
+    baseUrl: readConfig('goapi.baseUrl', 'https://api.goapi.ai'),
   },
   s3: readConfig('s3', {}),
   proxy: {

@@ -4,9 +4,9 @@ import { logger, LogLevel } from '@/common/logger';
 import { Mq } from '@/common/mq';
 import { S3Helpers } from '@/common/s3';
 import { getAndEnsureTempDataFolder, sleep } from '@/common/utils';
+import axios from '@/common/utils/axios';
 import { downloadFileTo, splitImage } from '@/common/utils/image';
 import { Inject, Injectable } from '@nestjs/common';
-import axios from 'axios';
 import fs from 'fs';
 import path from 'path';
 
@@ -62,7 +62,7 @@ export class MidjourneyService {
     while (!finished && !timeouted) {
       try {
         const { data: fetchData } = await axios.post(
-          'https://api.midjourneyapi.xyz/mj/v2/fetch',
+          '/mj/v2/fetch',
           {
             task_id: task_id,
           },
@@ -174,7 +174,7 @@ export class MidjourneyService {
     // 第一步：imagine
     try {
       const { data: imagineData } = await axios.post(
-        `https://api.midjourneyapi.xyz/mj/v2/imagine`,
+        `/mj/v2/imagine`,
         {
           prompt,
           process_mode,
@@ -220,7 +220,7 @@ export class MidjourneyService {
 
     try {
       const { data: blendData } = await axios.post(
-        `https://api.midjourneyapi.xyz/mj/v2/blend`,
+        `/mj/v2/blend`,
         {
           image_urls: images,
           process_mode,
