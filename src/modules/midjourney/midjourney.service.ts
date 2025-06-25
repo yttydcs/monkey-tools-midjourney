@@ -33,7 +33,7 @@ export interface GoApiMidjourneyBlendInput {
 
 @Injectable()
 export class MidjourneyService {
-  constructor(@Inject(MQ_TOKEN) private readonly mq: Mq) {}
+  constructor(@Inject(MQ_TOKEN) private readonly mq: Mq) { }
 
   private pubMessage(workflowTaskId: string, level: LogLevel, message: string) {
     logger[level]?.(message);
