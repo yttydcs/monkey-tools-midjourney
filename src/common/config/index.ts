@@ -16,6 +16,7 @@ export interface RedisConfig {
 export interface GoApiConfig {
   baseUrl?: string;
   apikey: string;
+  timeout?: number;
 }
 
 export interface S3Config {
@@ -64,6 +65,7 @@ export const config: Config = {
   goapi: {
     apikey: readConfig('goapi.apikey', ''),
     baseUrl: readConfig('goapi.baseUrl', 'https://api.goapi.ai'),
+    timeout: readConfig('goapi.timeout', 60 * 10 * 1000), // 默认10分钟
   },
   s3: readConfig('s3', {}),
   proxy: {

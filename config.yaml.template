@@ -3,6 +3,7 @@ server:
 
 goapi:
   apikey: xxxxxx
+  timeout: 600000  # 超时时间（毫秒），默认10分钟
 
 s3:
   accessKeyId: xxxxxxxx

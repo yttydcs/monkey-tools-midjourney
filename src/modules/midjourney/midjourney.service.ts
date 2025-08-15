@@ -53,13 +53,16 @@ export class MidjourneyService {
 
   private async pollResult(workflowTaskId: string, task_id: string) {
     let finished = false;
+    let failed = false;
+    let failedError: Error | null = null;
     // 四张图汇总在一起的
     let imageUrl = '';
-    // Set timeout to 10 minutes
-    const timeoutMs = 60 * 10 * 1000;
+    // 从配置中读取超时时间，默认10分钟
+    const timeoutMs = config.goapi.timeout || 60 * 10 * 1000;
     const start = +new Date();
     let timeouted = false;
-    while (!finished && !timeouted) {
+
+    while (!finished && !failed && !timeouted) {
       try {
         const { data: fetchData } = await axios.post(
           '/mj/v2/fetch',
@@ -78,21 +81,42 @@ export class MidjourneyService {
           'info',
           `Midjourney task status: ${status}`,
         );
-        finished = status === 'finished';
-        if (finished) {
+
+        // 检查任务状态
+        if (status === 'finished') {
+          finished = true;
           imageUrl = task_result.image_url;
+        } else if (status === 'failed') {
+          failed = true;
+          const errorMsg = task_result?.error || 'Task failed without specific error message';
+          failedError = new Error(`Midjourney task failed: ${errorMsg}`);
+          this.pubMessage(
+            workflowTaskId,
+            'error',
+            `Midjourney task failed: ${errorMsg}`,
+          );
+          // 不要在这里抛出错误，让循环自然结束
+          break;
         } else {
-          await sleep(500);
+          // 对于其他状态（pending, processing等），继续等待
+          await sleep(2000); // 增加轮询间隔到2秒，减少API调用频率
         }
       } catch (error) {
+        // 检查是否是网络错误还是任务状态错误
+        if (error.message && error.message.includes('Midjourney task failed')) {
+          failed = true;
+          failedError = error;
+          break;
+        }
+
         this.pubMessage(
           workflowTaskId,
           'warn',
           `Polling GOAPI midjourney task failed: ${error.message}, retrying...`,
         );
-        await sleep(500);
+        await sleep(2000);
       } finally {
-        if (!finished) {
+        if (!finished && !failed) {
           timeouted = +new Date() - start > timeoutMs;
         }
       }
@@ -107,6 +131,10 @@ export class MidjourneyService {
       throw new Error(
         `Midjourney task timeouted after ${timeoutMs / 1000} seconds`,
       );
+    }
+
+    if (failed && failedError) {
+      throw failedError;
     }
 
     // 把图切开
