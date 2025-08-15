@@ -35,6 +35,26 @@ export interface GoApiMidjourneyBlendInput {
 export class MidjourneyService {
   constructor(@Inject(MQ_TOKEN) private readonly mq: Mq) { }
 
+  /**
+   * 清理提示词中的代码块标记和多余格式
+   * @param prompt 原始提示词
+   * @returns 清理后的提示词
+   */
+  private cleanPrompt(prompt: string): string {
+    if (!prompt) return prompt;
+    
+    // 移除代码块标记 ``` 和 ```
+    let cleaned = prompt.replace(/```[\s\S]*?```/g, '');
+    
+    // 移除单独的 ``` 标记
+    cleaned = cleaned.replace(/```/g, '');
+    
+    // 移除多余的换行符和空格
+    cleaned = cleaned.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
+    
+    return cleaned;
+  }
+
   private pubMessage(workflowTaskId: string, level: LogLevel, message: string) {
     logger[level]?.(message);
     this.mq.publish(
@@ -204,7 +224,7 @@ export class MidjourneyService {
       const { data: imagineData } = await axios.post(
         `/mj/v2/imagine`,
         {
-          prompt,
+          prompt: this.cleanPrompt(prompt),
           process_mode,
           aspect_ratio,
           skip_prompt_check,
@@ -265,7 +285,7 @@ export class MidjourneyService {
       this.pubMessage(
         workflowTaskId,
         'info',
-        `Created midjourney blend task with prompt ${prompt}, task_id=${task_id}`,
+        `Created midjourney blend task with ${images.length} images, task_id=${task_id}`,
       );
       return await this.pollResult(workflowTaskId, task_id);
     } catch (error: any) {
