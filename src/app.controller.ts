@@ -10,7 +10,7 @@ import {
 
 @Controller()
 export class AppController {
-  constructor() {}
+  constructor() { }
 
   @Get('/healthz')
   public async healthz() {
@@ -51,6 +51,33 @@ export class AppController {
               displayName: 'API Key',
               type: 'string',
               name: 'api_key',
+              required: true,
+            },
+          ],
+        },
+        {
+          name: 'youchuan',
+          type: CredentialAuthType.AKSK,
+          displayName: '悠船',
+          // @ts-ignore
+          iconUrl: 'https://ali.youchuan.cn/favicon.ico',
+          properties: [
+            {
+              displayName:
+                '在悠船平台开通服务后，从控制台获取 `x-youchuan-app` 和 `x-youchuan-secret`。',
+              type: 'notice',
+              name: 'docs',
+            },
+            {
+              displayName: 'App ID',
+              type: 'string',
+              name: 'app_id',
+              required: true,
+            },
+            {
+              displayName: 'Secret',
+              type: 'string',
+              name: 'secret',
               required: true,
             },
           ],

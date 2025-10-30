@@ -18,13 +18,14 @@ import {
   GoApiMidjourneyBlendInput,
   GoApiMidjourneyInput,
   MidjourneyService,
+  YouchuanMidjourneyInput,
 } from './midjourney.service';
 
 @Controller('')
 @UseGuards(new AuthGuard())
 @ApiTags('图像生成')
 export class MidjourneyController {
-  constructor(private readonly service: MidjourneyService) {}
+  constructor(private readonly service: MidjourneyService) { }
 
   @Post('/goapi-midjourney')
   @ApiOperation({
@@ -121,6 +122,77 @@ export class MidjourneyController {
     const { taskId } = req;
     console.log(body);
     const urls = await this.service.generateImageByGoApi(taskId, body);
+    return {
+      result: urls,
+    };
+  }
+
+  @Post('/youchuan-midjourney')
+  @ApiOperation({
+    summary: '文本生成图像（悠船）',
+    description: '使用悠船 AI 绘图生成图片。',
+  })
+  @MonkeyToolName('youchuan_midjourney')
+  @MonkeyToolDisplayName({
+    'zh-CN': '文本生成图像（悠船）',
+    'en-US': 'Text to Image (YouChuan)',
+  })
+  @MonkeyToolDescription({
+    'zh-CN': '调用悠船 AI 绘图服务生成图片。',
+    'en-US': 'Generate images via YouChuan diffusion API.',
+  })
+  @MonkeyToolCategories(['gen-image'])
+  @MonkeyToolIcon('emoji:🎨:#5a7ce2')
+  @MonkeyToolInput([
+    {
+      type: 'string',
+      name: 'text',
+      displayName: {
+        'zh-CN': '关键词（提示词）',
+        'en-US': 'Prompt',
+      },
+      default: '',
+      required: true,
+    },
+    {
+      type: 'string',
+      name: 'callback',
+      displayName: {
+        'zh-CN': '回调地址（可选）',
+        'en-US': 'Callback URL (optional)',
+      },
+      required: false,
+    },
+  ])
+  @MonkeyToolOutput([
+    {
+      name: 'result',
+      displayName: {
+        'zh-CN': '图像 URL 列表',
+        'en-US': 'Image URL list',
+      },
+      type: 'file',
+      typeOptions: {
+        multipleValues: true,
+      },
+    },
+  ])
+  @MonkeyToolCredentials([
+    {
+      name: 'youchuan',
+      required:
+        config.youchuan.appId && config.youchuan.secret ? false : true,
+    },
+  ])
+  @MonkeyToolExtra({
+    estimateTime: 180,
+  })
+  public async generateImageByYouchuan(
+    @Req() req: IRequest,
+    @Body() body: YouchuanMidjourneyInput,
+  ) {
+    const { taskId } = req;
+    const urls = await this.service.generateImageByYouchuan(taskId, body);
     return {
       result: urls,
     };

@@ -19,6 +19,13 @@ export interface GoApiConfig {
   timeout?: number;
 }
 
+export interface YouchuanConfig {
+  baseUrl?: string;
+  appId: string;
+  secret: string;
+  timeout?: number;
+}
+
 export interface S3Config {
   accessKeyId: string;
   secretAccessKey: string;
@@ -40,6 +47,7 @@ export interface Config {
   server: ServerConfig;
   redis: RedisConfig;
   goapi: GoApiConfig;
+  youchuan: YouchuanConfig;
   s3: S3Config;
   proxy: ProxyConfig;
 }
@@ -66,6 +74,12 @@ export const config: Config = {
     apikey: readConfig('goapi.apikey', ''),
     baseUrl: readConfig('goapi.baseUrl', 'https://api.goapi.ai'),
     timeout: readConfig('goapi.timeout', 60 * 10 * 1000), // 默认10分钟
+  },
+  youchuan: {
+    appId: readConfig('youchuan.appId', ''),
+    secret: readConfig('youchuan.secret', ''),
+    baseUrl: readConfig('youchuan.baseUrl', 'https://ali.youchuan.cn'),
+    timeout: readConfig('youchuan.timeout', 60 * 10 * 1000),
   },
   s3: readConfig('s3', {}),
   proxy: {

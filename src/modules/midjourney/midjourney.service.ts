@@ -5,7 +5,12 @@ import { Mq } from '@/common/mq';
 import { S3Helpers } from '@/common/s3';
 import { getAndEnsureTempDataFolder, sleep } from '@/common/utils';
 import axios from '@/common/utils/axios';
-import { downloadFileTo, splitImage } from '@/common/utils/image';
+import youchuanAxios from '@/common/utils/axiosYouchuan';
+import {
+  downloadFileAsBuffer,
+  downloadFileTo,
+  splitImage,
+} from '@/common/utils/image';
 import { Inject, Injectable } from '@nestjs/common';
 import fs from 'fs';
 import path from 'path';
@@ -31,6 +36,15 @@ export interface GoApiMidjourneyBlendInput {
   };
 }
 
+export interface YouchuanMidjourneyInput {
+  text: string;
+  callback?: string;
+  credential?: {
+    type: string;
+    encryptedData: string;
+  };
+}
+
 @Injectable()
 export class MidjourneyService {
   constructor(@Inject(MQ_TOKEN) private readonly mq: Mq) { }
@@ -42,16 +56,16 @@ export class MidjourneyService {
    */
   private cleanPrompt(prompt: string): string {
     if (!prompt) return prompt;
-    
+
     // 移除代码块标记 ``` 和 ```
     let cleaned = prompt.replace(/```[\s\S]*?```/g, '');
-    
+
     // 移除单独的 ``` 标记
     cleaned = cleaned.replace(/```/g, '');
-    
+
     // 移除多余的换行符和空格
     cleaned = cleaned.replace(/\n+/g, ' ').replace(/\s+/g, ' ').trim();
-    
+
     return cleaned;
   }
 
@@ -194,6 +208,211 @@ export class MidjourneyService {
     }
 
     return [imageUrl];
+  }
+
+  private resolveYouchuanCredential(
+    credential?: {
+      type: string;
+      encryptedData: string;
+    },
+  ) {
+    let appId = config.youchuan.appId;
+    let secret = config.youchuan.secret;
+
+    if (credential?.encryptedData) {
+      try {
+        const credentialData = JSON.parse(credential.encryptedData);
+        appId =
+          credentialData.app_id ??
+          credentialData.appId ??
+          credentialData.app ??
+          appId;
+        secret =
+          credentialData.secret ??
+          credentialData.secret_key ??
+          credentialData.secretKey ??
+          credentialData.app_secret ??
+          secret;
+      } catch (error) {
+        throw new Error('解析悠船凭证失败：' + (error as Error).message);
+      }
+    }
+
+    if (!appId || !secret) {
+      throw new Error('没有配置悠船 API 凭证，请联系管理员。');
+    }
+
+    return { appId, secret };
+  }
+
+  private buildYouchuanHeaders(appId: string, secret: string) {
+    return {
+      'x-youchuan-app': appId,
+      'x-youchuan-secret': secret,
+      'Accept-Encoding': 'gzip, deflate',
+    };
+  }
+
+  private async pollYouchuanResult(
+    workflowTaskId: string,
+    jobId: string,
+    headers: Record<string, string>,
+  ) {
+    let finished = false;
+    let failedError: Error | null = null;
+    const timeoutMs = config.youchuan.timeout || 60 * 10 * 1000;
+    const start = +new Date();
+    let timeouted = false;
+    let imageUrls: string[] = [];
+
+    while (!finished && !failedError && !timeouted) {
+      try {
+        const { data } = await youchuanAxios.get(`/v1/tob/job/${jobId}`, {
+          headers,
+        });
+        const { status, comment, urls } = data ?? {};
+        this.pubMessage(
+          workflowTaskId,
+          'info',
+          `Youchuan task status: ${status}${comment ? ` - ${comment}` : ''}`,
+        );
+
+        if (status === 2) {
+          finished = true;
+          imageUrls = Array.isArray(urls)
+            ? (urls as string[]).filter((url) => !!url)
+            : [];
+        } else if (status !== 1) {
+          const commentMsg = comment || '任务失败';
+          failedError = new Error(`Youchuan task failed: ${commentMsg}`);
+        } else {
+          await sleep(2000);
+        }
+      } catch (error: any) {
+        this.pubMessage(
+          workflowTaskId,
+          'warn',
+          `Polling Youchuan task failed: ${error.message}, retrying...`,
+        );
+        await sleep(2000);
+      } finally {
+        if (!finished && !failedError) {
+          timeouted = +new Date() - start > timeoutMs;
+        }
+      }
+    }
+
+    if (timeouted) {
+      const msg = `Youchuan task timeouted after ${timeoutMs / 1000} seconds`;
+      this.pubMessage(workflowTaskId, 'error', msg);
+      throw new Error(msg);
+    }
+
+    if (failedError) {
+      throw failedError;
+    }
+
+    if (!imageUrls.length) {
+      throw new Error('悠船任务完成但未返回任何图片 URL');
+    }
+
+    return await this.uploadYouchuanImages(workflowTaskId, jobId, imageUrls);
+  }
+
+  private async uploadYouchuanImages(
+    workflowTaskId: string,
+    jobId: string,
+    urls: string[],
+  ) {
+    try {
+      const s3Helper = new S3Helpers();
+      const result = await Promise.all(
+        urls.map(async (url, index) => {
+          this.pubMessage(
+            workflowTaskId,
+            'info',
+            `Downloading image ${index + 1}/${urls.length}: ${url}`,
+          );
+          const buffer = await downloadFileAsBuffer(url);
+          this.pubMessage(
+            workflowTaskId,
+            'info',
+            `Uploading file ${index + 1}/${urls.length}`,
+          );
+          return await s3Helper.uploadFile(
+            buffer,
+            `workflow/artifact/youchuan/${jobId}/${index}.png`,
+          );
+        }),
+      );
+      this.pubMessage(
+        workflowTaskId,
+        'info',
+        'Upload files result:' + JSON.stringify(result),
+      );
+      return result;
+    } catch (error: any) {
+      this.pubMessage(
+        workflowTaskId,
+        'warn',
+        `Upload to S3 failed, fallback to provider URLs: ${error.message}`,
+      );
+      return urls;
+    }
+  }
+
+  public async generateImageByYouchuan(
+    workflowTaskId: string,
+    inputData: YouchuanMidjourneyInput,
+  ): Promise<string[]> {
+    const { text, callback, credential } = inputData;
+    if (!text || !text.trim()) {
+      throw new Error('提示词不能为空');
+    }
+
+    const { appId, secret } = this.resolveYouchuanCredential(credential);
+    const headers = this.buildYouchuanHeaders(appId, secret);
+
+    try {
+      const { data } = await youchuanAxios.post(
+        '/v1/tob/diffusion',
+        {
+          text: this.cleanPrompt(text),
+          callback: callback ?? '',
+        },
+        {
+          headers,
+        },
+      );
+
+      const jobId = data?.id;
+      if (!jobId) {
+        throw new Error('悠船返回结果缺少任务 ID');
+      }
+
+      this.pubMessage(
+        workflowTaskId,
+        'info',
+        `Created youchuan diffusion task with prompt ${text}, job_id=${jobId}`,
+      );
+
+      const uploadedUrls = await this.pollYouchuanResult(
+        workflowTaskId,
+        jobId,
+        headers,
+      );
+
+      return uploadedUrls;
+    } catch (error: any) {
+      logger.error(error);
+      const errMsg =
+        error?.response?.data?.message ||
+        error?.response?.data?.comment ||
+        error?.message;
+      throw new Error('生成图片失败：' + errMsg);
+    } finally {
+      this.pubMessage(workflowTaskId, 'info', '[DONE]');
+    }
   }
 
   public async generateImageByGoApi(
